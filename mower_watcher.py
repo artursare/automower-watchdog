@@ -1,9 +1,4 @@
-import os
-import time
-import requests
-from dotenv import load_dotenv
-
-load_dotenv()
+import requests, time, os
 
 CLIENT_ID = os.getenv('CLIENT_ID')
 CLIENT_SECRET = os.getenv('CLIENT_SECRET')
@@ -15,7 +10,6 @@ def get_token():
         'scope': 'iam:read amc:control'
     }
     response = requests.post(url, auth=(CLIENT_ID, CLIENT_SECRET), data=data)
-    response.raise_for_status()
     return response.json()['access_token']
 
 def get_mower_status(token):
@@ -23,9 +17,8 @@ def get_mower_status(token):
         'Authorization': f'Bearer {token}',
         'Accept': 'application/vnd.api+json'
     }
-    response = requests.get('https://api.amc.husqvarnagroup.dev/v1/mowers', headers=headers)
-    response.raise_for_status()
-    return response.json()['data']
+    r = requests.get('https://api.amc.husqvarnagroup.dev/v1/mowers', headers=headers)
+    return r.json()['data']
 
 def resume_mower(token, mower_id):
     headers = {
@@ -35,14 +28,11 @@ def resume_mower(token, mower_id):
     data = {
         'data': {
             'type': 'mower-control',
-            'attributes': {
-                'command': 'START_RESUME_SCHEDULE'
-            }
+            'attributes': { 'command': 'START_RESUME_SCHEDULE' }
         }
     }
     url = f'https://api.amc.husqvarnagroup.dev/v1/mowers/{mower_id}/actions'
-    response = requests.post(url, headers=headers, json=data)
-    response.raise_for_status()
+    requests.post(url, headers=headers, json=data)
 
 def loop():
     token = get_token()
