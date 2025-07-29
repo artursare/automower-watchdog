@@ -27,7 +27,9 @@ def get_token():
 def get_mower_status(token):
     headers = {
         'Authorization': f'Bearer {token}',
-        'Accept': 'application/vnd.api+json'
+        'X-Api-Key': CLIENT_ID,
+        'Accept': 'application/vnd.api+json',
+        'Authorization-Provider': 'husqvarna'
     }
     r = requests.get('https://api.amc.husqvarna.dev/v1/mowers', headers=headers)
     try:
@@ -41,7 +43,9 @@ def get_mower_status(token):
 def resume_mower(token, mower_id):
     headers = {
         'Authorization': f'Bearer {token}',
-        'Content-Type': 'application/vnd.api+json'
+        'X-Api-Key': CLIENT_ID,
+        'Content-Type': 'application/vnd.api+json',
+        'Authorization-Provider': 'husqvarna'
     }
     data = {
         'data': {
