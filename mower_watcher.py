@@ -29,8 +29,12 @@ def get_mower_status(token):
         'Authorization': f'Bearer {token}',
         'Accept': 'application/vnd.api+json'
     }
-    r = requests.get('https://api.amc.husqvarnagroup.dev/v1/mowers', headers=headers)
-    data = r.json()['data']
+    r = requests.get('https://api.amc.husqvarna.dev/v1/mowers', headers=headers)
+    try:
+        data = r.json()['data']
+    except (KeyError, ValueError) as e:
+        logging.error(f"Error parsing mower status response: {e}, Raw response: {r.text}")
+        raise
     logging.info(f"Retrieved status for {len(data)} mower(s).")
     return data
 
@@ -45,12 +49,17 @@ def resume_mower(token, mower_id):
             'attributes': { 'command': 'START_RESUME_SCHEDULE' }
         }
     }
-    url = f'https://api.amc.husqvarnagroup.dev/v1/mowers/{mower_id}/actions'
-    requests.post(url, headers=headers, json=data)
+    url = f'https://api.amc.husqvarna.dev/v1/mowers/{mower_id}/actions'
+    response = requests.post(url, headers=headers, json=data)
+    if response.status_code == 204:
+        logging.info(f"Mower {mower_id} resumed successfully.")
+    else:
+        logging.warning(f"Failed to resume mower {mower_id}. Status: {response.status_code}, Response: {response.text}")
 
 def loop():
     token = get_token()
     while True:
+        logging.debug("Starting new iteration of mower check loop.")
         try:
             mowers = get_mower_status(token)
             for mower in mowers:
