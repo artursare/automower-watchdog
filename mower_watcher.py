@@ -1,4 +1,10 @@
 import requests, time, os
+import logging
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s [%(levelname)s] %(message)s'
+)
 
 CLIENT_ID = os.getenv('CLIENT_ID')
 CLIENT_SECRET = os.getenv('CLIENT_SECRET')
@@ -10,7 +16,13 @@ def get_token():
         'scope': 'iam:read amc:control'
     }
     response = requests.post(url, auth=(CLIENT_ID, CLIENT_SECRET), data=data)
-    return response.json()['access_token']
+    try:
+        token = response.json()['access_token']
+        logging.info("Token acquired successfully.")
+        return token
+    except KeyError:
+        logging.error("Token acquisition failed, 'access_token' not in response.")
+        raise
 
 def get_mower_status(token):
     headers = {
@@ -18,7 +30,9 @@ def get_mower_status(token):
         'Accept': 'application/vnd.api+json'
     }
     r = requests.get('https://api.amc.husqvarnagroup.dev/v1/mowers', headers=headers)
-    return r.json()['data']
+    data = r.json()['data']
+    logging.info(f"Retrieved status for {len(data)} mower(s).")
+    return data
 
 def resume_mower(token, mower_id):
     headers = {
@@ -42,13 +56,16 @@ def loop():
             for mower in mowers:
                 state = mower['attributes']['mower']['state']
                 mower_id = mower['id']
-                print(f"Mower {mower_id} state: {state}")
+                logging.info(f"Mower {mower_id} state: {state}")
                 if state == 'TRAPPED':
-                    print("Resuming mower...")
+                    logging.warning(f"Mower {mower_id} is trapped, attempting to resume.")
                     resume_mower(token, mower_id)
         except Exception as e:
-            print(f"Error: {e}")
+            logging.error(f"Error: {e}")
         time.sleep(60)
 
 if __name__ == "__main__":
-    loop()
+    try:
+        loop()
+    except Exception as e:
+        logging.exception("Unexpected error occurred:")
